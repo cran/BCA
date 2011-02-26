@@ -1,0 +1,20 @@
+export(
+    create.samples,
+    variable.summary,
+    relabel.factor,
+    bpCent,
+    bpCent3d,
+    SD.clv,
+    SDIndex,
+    lift.chart,
+    Nnet,
+    scatterplotBCA, 
+    scatterplotMatrixBCA
+)
+
+
+S3method(scatterplotBCA, default)       
+S3method(scatterplotBCA, formula)       
+S3method(scatterplotMatrixBCA, default)
+S3method(scatterplotMatrixBCA, formula)
+
