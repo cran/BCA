@@ -1,6 +1,6 @@
 Package: BCA
-Version: 0.1-0
-Date: 2011/02/26
+Version: 0.1-1
+Date: 2011/05/04
 Title: Business and Customer Analytics
 Author: Dan Putler <putler@yahoo.com>
 Maintainer: Dan Putler <putler@yahoo.com>
@@ -12,6 +12,6 @@ Description: Underlying support functions for RcmdrPlugin.BCA and a
         Hands-on Approach
 License: GPL (>= 2)
 URL: http://www.r-project.org, http://www.customeranalyticsbook.com
-Packaged: 2011-02-28 04:21:06 UTC; dputler
+Packaged: 2011-05-04 22:30:51 UTC; dputler
 Repository: CRAN
-Date/Publication: 2011-03-01 07:31:21
+Date/Publication: 2011-05-05 08:56:34

@@ -9,7 +9,10 @@ export(
     lift.chart,
     Nnet,
     scatterplotBCA, 
-    scatterplotMatrixBCA
+    scatterplotMatrixBCA,
+    rankScore,
+    rawProbScore,
+    adjProbScore
 )
 
 

@@ -508,7 +508,7 @@ lift.chart <- function(modelList, data, targLevel, trueResp, type="cumulative",
     invisible()
     }
 
-score <- function(model, data, targLevel) {
+rankScore <- function(model, data, targLevel) {
     mod <- eval(parse(text=model))
     modtype <- class(mod)[1]
     if(modtype != "glm" & modtype != "rpart" & modtype != "nnet.formula") {
@@ -541,6 +541,87 @@ stop("Scoring can only be done for models estimated using glm, rpart, or nnet.")
       oldOrd=order(scoreVar1, decreasing=TRUE))
     score.df <- score.df[order(score.df$oldOrd),]
     scoreVar <- score.df$scoreVar
+    return(scoreVar)
+    }
+
+rawProbScore <- function(model, data, targLevel) {
+    mod <- eval(parse(text=model))
+    modtype <- class(mod)[1]
+    if(modtype != "glm" & modtype != "rpart" & modtype != "nnet.formula") {
+stop("Scoring can only be done for models estimated using glm, rpart, or nnet.")
+        }
+    yvar <- as.character(mod$call$formula)[2]
+    origYs <- eval(parse(text=paste("unique(", ActiveDataSet(), "$", yvar, ")")))
+    origYs <- as.character(origYs)
+    origYs <- origYs[order(origYs)]
+    xvars <- unlist(strsplit(as.character(mod$call$formula)[3]," + ",
+      fixed=TRUE))
+    if(!all(xvars %in% names(data))) {
+        probVar <- c(xvars[!(xvars %in% names(data))])
+        stop(paste("The model variables", paste(probVar, collapse=", "),
+          "are not in the data set."))
+        }
+    modelReDo <- eval(mod$call)
+    if(modtype == "glm" | modtype == "nnet.formula") {
+        if(origYs[1] == targLevel) {
+            scoreVar1 <- -1 * predict(modelReDo, newdata = data)
+            }
+        else {
+            scoreVar1 <- predict(modelReDo, newdata = data)
+            }
+        }
+    else {
+        scoreVar1 <- predict(modelReDo, newdata = data)[ , targLevel]
+        }
+    if(modtype == "glm") {
+        scoreVar <- exp(scoreVar1)/(exp(scoreVar1) + 1)
+        }
+    else {
+        scoreVar <- scoreVar1
+        }
+    return(scoreVar)
+    }
+
+adjProbScore <- function(model, data, targLevel, trueResp) {
+    mod <- eval(parse(text=model))
+    modtype <- class(mod)[1]
+    if(modtype != "glm" & modtype != "rpart" & modtype != "nnet.formula") {
+stop("Scoring can only be done for models estimated using glm, rpart, or nnet.")
+        }
+    yvar <- as.character(mod$call$formula)[2]
+    yvar1 <- eval(parse(text=paste("as.character(", ActiveDataSet(), "$", yvar, ")")))
+    yvar2 <- as.numeric(yvar1 == targLevel)
+    print(yvar1)
+    sampResp <- sum(yvar2)/length(yvar2)
+    adjWt <- trueResp/sampResp
+    origYs <- eval(parse(text=paste("unique(", ActiveDataSet(), "$", yvar, ")")))
+    origYs <- as.character(origYs)
+    origYs <- origYs[order(origYs)]
+    xvars <- unlist(strsplit(as.character(mod$call$formula)[3]," + ",
+      fixed=TRUE))
+    if(!all(xvars %in% names(data))) {
+        probVar <- c(xvars[!(xvars %in% names(data))])
+        stop(paste("The model variables", paste(probVar, collapse=", "),
+          "are not in the data set."))
+        }
+    modelReDo <- eval(mod$call)
+    if(modtype == "glm" | modtype == "nnet.formula") {
+        if(origYs[1] == targLevel) {
+            scoreVar1 <- -1 * predict(modelReDo, newdata = data)
+            }
+        else {
+            scoreVar1 <- predict(modelReDo, newdata = data)
+            }
+        }
+    else {
+        scoreVar1 <- predict(modelReDo, newdata = data)[ , targLevel]
+        }
+    if(modtype == "glm") {
+        scoreVar <- adjWt*(exp(scoreVar1)/(exp(scoreVar1) + 1))
+        }
+    else {
+        scoreVar <- adjWt*scoreVar1
+        }
     return(scoreVar)
     }
 
