@@ -5,13 +5,14 @@
 \title{Charitable Giving Dataset}
 
 \description{
-The \code{Charity} data set has 1600 observations and 20 variables.
-The data examine whether a donor joined a British Columbia and Yukon based
-charity's Monthly Giver Program in which he or she opts to make a pre-arranged
-monthly donation to the charity by credit card.
-The actual monthly givers have been highly over-sampled. In the the Charity's
-database they represent one percent of donors, but they comprise 50 percent of
-this sample. This level of oversampling is common in data mining applications.
+The \code{CCS} data set has 1600 observations and 20 variables, and is from the
+data is from the Britsh Columbia and Yukon region of a nationwide Canadian
+charitable society. The data examine whether a donor joined the Monthly Giver
+Program, in which he or she opts to make a pre-arranged monthly donation to the
+charity by credit card. The actual monthly givers have been highly over-sampled.
+In the charity's database they represent one percent of donors, but they
+comprise 50 percent of this sample. This level of oversampling is common in data
+mining applications.
 }
 
 \format{

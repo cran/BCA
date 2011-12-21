@@ -1,4 +1,5 @@
 ## Created 26Feb11 by Dan Putler
+## Last modified on 20Dec11 by Dan Putler
 
 ## Data related items
 create.samples <- function(x, est=0.34, val=0.33, rand.seed=1) {
@@ -70,7 +71,7 @@ relabel.factor <- function(x, new.labels, old.labels=levels(x)) {
     }
 
 
-# Clustering
+## Clustering
 # 2D biplot
 bpCent <- function(pc, clsAsgn, data.pts = TRUE, centroids = TRUE, 
   choices = 1:2, scale = 1, pc.biplot=FALSE, var.axes = TRUE, col=palette()[1:2],
@@ -155,7 +156,6 @@ bpCent <- function(pc, clsAsgn, data.pts = TRUE, centroids = TRUE,
 # 3D biplot
 bpCent3d <- function(pc, clsAsgn, data.pts = TRUE, centroids = TRUE, 
   choices = 1:3, scale = 1, pc.biplot=FALSE, var.axes = TRUE, 
-
   col.score = "black", col.cntrs = "blue", col.load = "red",
   xlabs = NULL, ylabs = NULL, xlim = NULL, ylim = NULL, zlim = NULL,
   xlab = NULL,  ylab = NULL, dim.lab = NULL, fov = 60)
@@ -283,6 +283,111 @@ SDIndex <- function(x, minClust, maxClust, iter.max=10, num.seeds=10) {
     invisible()
     }
 
+# The cluster diagnostic functions for K-Centroids clustering
+
+# This function calculates the Calinski-Harabas index for all solutions
+# contained in a bootFlexclust object. It does it for each Rand test paired
+# comparison, so 100 bootstrap replicates of the Rand index will result in 200
+# Calinski-Harabase index values. This code borrows from the function index.G1
+# of Marek Walesiak and Andrzej Dudek's clusterSim package in terms of
+# implementing the sum of squares components
+bootCH <- function(xdat, k_vals, clstr1, clstr2, cntrs1, cntrs2, 
+  method = c("kmn", "kmd", "neuralgas")) {
+  method = match.arg(method)
+  if(method == "kmd") all_centers <- apply(xdat, 2, median)
+  else all_centers <- apply(xdat, 2, mean)
+  all_dif <- sweep(xdat, 2, all_centers,"-")
+  tss <- sum(all_dif^2)
+  n_solu <- dim(clstr1)[2] # total number of cluster solutions considered
+  nboot <- dim(clstr1)[3]
+  n_obs <- dim(clstr1)[1]
+  ch_mat <- matrix(NA, nrow=2*nboot, ncol=n_solu)
+  for(k_ind in 1:n_solu) {
+    cent_array1 <- cntrs1[[k_ind]]
+    cent_array2 <- cntrs2[[k_ind]]
+    cls_asgn_m1 <- clstr1[,k_ind,]
+    cls_asgn_m2 <- clstr2[,k_ind,]
+    k <- k_vals[k_ind]
+    ch_reps1 <- rep(NA, nboot)
+    ch_reps2 <- rep(NA, nboot)
+    for(b_ind in 1:nboot) {
+      clus1 <- cls_asgn_m1[,b_ind]
+      clus2 <- cls_asgn_m2[,b_ind]
+      centrds1 <- cent_array1[,,b_ind]
+      centrds2 <- cent_array2[,,b_ind]
+      wss1a <- (xdat - centrds1[clus1,])^2
+      wss2a <- (xdat - centrds2[clus2,])^2
+      wss1 <- 0
+      wss2 <- 0
+      for(m in 1:k) {
+        wss1 <- wss1 + sum(wss1a[clus1 == m,])
+        wss2 <- wss2 + sum(wss2a[clus2 == m,])
+      }
+      bss1 <- tss - wss1
+      bss2 <- tss - wss2
+      ch_reps1[b_ind] <- ((n_obs - k)/(k - 1))*(bss1/wss1)
+      ch_reps2[b_ind] <- ((n_obs - k)/(k - 1))*(bss2/wss2)
+    }
+    ch_mat[,k_ind] <- c(ch_reps1, ch_reps2)
+    dimnames(ch_mat)[[2]] <- as.character(k_vals)
+  }
+  return(ch_mat)
+}
+
+# A function to produce the diagnostic plots for a bootFlexclust object
+bootPlot <- function(fc, ch, col1="blue", col2="green") {
+  if(class(fc) != "bootFlexclust") {
+    stop("An object of class bootFlexclust was not provided")
+  }
+  if(class(ch) != "ch_index") {
+    stop("An object of class ch_index was not provided")
+  }
+  omfrow <- par()$mfrow
+  par(mfrow = c(2, 1))
+  boxplot(fc@rand, main=paste("Adj Rand Index for", ch$data, "using",
+    ch$method), xlab="Number of Clusters", ylab="Adjusted Rand", col=col1)
+  boxplot(ch, main=paste("C-H Index for", ch$data, "using", ch$method),
+    xlab="Number of Clusters", ylab="Calinski-Harabas", col=col2)
+  par(mfrow = omfrow)
+  return(invisible())
+}
+
+# A function needed as a workaround for Rcmdr namespace issues, really a
+# wrapper for bootFlexclust, bootCH, and bootPlot that enables a single call
+# to be made in RcmdrPlugin.BCA
+bootCVD <- function(x, k, nboot=100, nrep=1, method = c("kmn", "kmd", "neuralgas"),
+  col1, col2, dsname) {
+  print(class(x))
+  require(flexclust)
+  method = match.arg(method)
+  if(method == "kmn") {
+    bfc <- bootFlexclust(x=x, k=k, nboot=nboot, nrep=nrep, FUN = cclust,
+      dist = "euclidean", method = "kmeans")
+    the_method <- "K-Means"
+  }
+  else if(method == "kmd") {
+    bfc <- bootFlexclust(x=x, k=k, nboot=nboot, nrep=nrep, FUN = kcca,
+      family = kccaFamily("kmedians"))
+    the_method <- "K-Medians"
+  }
+  else {
+    bfc <- bootFlexclust(x=x, k=k, nboot=nboot, nrep=nrep, FUN = cclust,
+      dist = "euclidean", method = "neuralgas")
+    the_method <- "Neural Gas"
+  } 
+  cat("\nSummary of Rand Indices:\n")
+  print(summary(bfc@rand))
+  ch <- bootCH(x, k, bfc@cluster1, bfc@cluster2, bfc@centers1, bfc@centers2, method)
+  cat("\nSummary of Calinski-Harabas Indices:\n")
+  print(summary(ch))
+  omfrow <- par()$mfrow
+  par(mfrow = c(2, 1))
+  boxplot(bfc@rand, main=paste("Adj Rand Index for", dsname, "using", the_method),
+    xlab="Number of Clusters", ylab="Adjusted Rand", col=col1)
+  boxplot(ch, main=paste("C-H Index for", dsname, "using", the_method),
+    xlab="Number of Clusters", ylab="Calinski-Harabas", col=col2)
+  par(mfrow = omfrow)
+}
 
 ## Models
 # The neural network functions
@@ -341,11 +446,11 @@ Nnet <- function (formula, data, decay, size, subset="") {
     set.seed(1)
     if(subset=="") {
         nnetObj <- nnet(formula=formula, data=data, decay=decay, size=size,
-          maxit=200)
-        for(i in 2:5) {
+          maxit=400)
+        for(i in 2:10) {
             set.seed(i)
             newNnet <- nnet(formula=formula, data=data, decay=decay, size=size,
-              maxit=200)
+              maxit=400)
             if(newNnet$value < nnetObj$value) nnetObj <- newNnet
             }
         }
@@ -353,11 +458,11 @@ Nnet <- function (formula, data, decay, size, subset="") {
         selectRow <- nnSub(data, subset)
         nData <- data[selectRow,]
         nnetObj <- nnet(formula=formula, data=nData, decay=decay, size=size,
-          maxit=200)
-        for(i in 2:5) {
+          maxit=400)
+        for(i in 2:10) {
             set.seed(i)
             newNnet <- nnet(formula=formula, data=nData, decay=decay, size=size,
-              maxit=200)
+              maxit=400)
             if(newNnet$value < nnetObj$value) nnetObj <- newNnet
             }
         }
