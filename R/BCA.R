@@ -1,5 +1,5 @@
 ## Created 26Feb11 by Dan Putler
-## Last modified on 20Dec11 by Dan Putler
+## Last modified on 03Feb13 by Dan Putler
 
 ## Data related items
 create.samples <- function(x, est=0.34, val=0.33, rand.seed=1) {
@@ -227,7 +227,7 @@ bpCent3d <- function(pc, clsAsgn, data.pts = TRUE, centroids = TRUE,
     cMin <- min(xlim, ylim, zlim)
     rgl.clear()
     rgl.viewpoint(fov=fov)
-    rgl.bg(col="white")
+    rgl.bg(color="white")
     rgl.lines(c(cMin,rangx[2]), c(cMin,cMin), c(cMin,cMin), color="black")
     rgl.lines(c(cMin,cMin), c(cMin,rangy[2]), c(cMin,cMin), color="black")
     rgl.lines(c(cMin,cMin), c(cMin,cMin), c(cMin,rangz[2]), color="black")
