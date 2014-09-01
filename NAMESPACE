@@ -1,3 +1,10 @@
+importFrom(car, showLabels, hccm, Boxplot, powerTransform, bcPower, yjPower, dataEllipse)
+importFrom(RcmdrMisc, KMeans)
+importFrom(Rcmdr, ActiveDataSet, Message, gettextRcmdr, trim.blanks)
+importFrom(clv, clv.Scatt, clv.Dis, clv.SD)
+importFrom(flexclust, bootFlexclust, cclust, kcca, kccaFamily)
+importFrom(rpart, rpart)
+
 export(
     create.samples,
     variable.summary,
@@ -10,7 +17,6 @@ export(
     bootPlot,
     bootCVD,
     lift.chart,
-    Nnet,
     scatterplotBCA, 
     scatterplotMatrixBCA,
     rankScore,

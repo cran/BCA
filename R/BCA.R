@@ -1,5 +1,5 @@
 ## Created 26Feb11 by Dan Putler
-## Last modified on 03Feb13 by Dan Putler
+## Last modified on 02Sep14 by Dan Putler
 
 ## Data related items
 create.samples <- function(x, est=0.34, val=0.33, rand.seed=1) {
@@ -160,100 +160,103 @@ bpCent3d <- function(pc, clsAsgn, data.pts = TRUE, centroids = TRUE,
   xlabs = NULL, ylabs = NULL, xlim = NULL, ylim = NULL, zlim = NULL,
   xlab = NULL,  ylab = NULL, dim.lab = NULL, fov = 60)
 {
-    if(length(choices) != 3) stop("length of choices must be 2")
-    if(!length(scores <- pc$x))
-	stop(gettextf("object '%s' has no scores", deparse(substitute(x))),
+	if (requireNamespace("rgl", quietly = TRUE)) {
+		if(length(choices) != 3) stop("length of choices must be 2")
+		if(!length(scores <- pc$x))
+			stop(gettextf("object '%s' has no scores", deparse(substitute(x))),
              domain = NA)
-    if(is.complex(scores))
-        stop("biplots are not defined for complex PCA")
-    lam <- pc$sdev[choices]
-    n <- NROW(scores)
-    lam <- lam * sqrt(n)
-    if(scale < 0 || scale > 1) warning("'scale' is outside [0, 1]")
-    if(scale != 0) lam <- lam^scale else lam <- 1
-    if(pc.biplot) lam <- lam / sqrt(n)
-    dim.lab <- paste("PC", choices, sep="")
-    use.rgl <- options("Rcmdr")[[1]]$use.rgl
-    if(length(use.rgl) == 0 || use.rgl) require(rgl)
-    cntrs <- apply(data.frame(scores[, choices]), MARGIN=2,
-      function(x) tapply(x,as.factor(clsAsgn),mean))
-    x <- t(t(scores[, choices]) / lam)
-    cntrs <- t(t(cntrs) / lam)
-    y <- t(t(pc$rotation[, choices]) * lam)
-    n <- nrow(pc)
-    ncls <- nrow(cntrs)
-    p <- nrow(y)
-    if(missing(xlabs)) {
-	xlabs <- dimnames(x)[[1]]
-	if(is.null(xlabs)) xlabs <- 1:n
-    }
-    xlabs <- as.character(xlabs)
-    dimnames(x) <- list(xlabs, dimnames(x)[[2]])
-    if(missing(ylabs)) {
-	ylabs <- dimnames(y)[[1]]
-	if(is.null(ylabs)) ylabs <- paste("Var", 1:p)
-    }
-    ylabs <- as.character(ylabs)
-    dimnames(y) <- list(ylabs, dimnames(y)[[2]])
+		if(is.complex(scores))
+			stop("biplots are not defined for complex PCA")
+		lam <- pc$sdev[choices]
+		n <- NROW(scores)
+		lam <- lam * sqrt(n)
+		if(scale < 0 || scale > 1) warning("'scale' is outside [0, 1]")
+		if(scale != 0) lam <- lam^scale else lam <- 1
+		if(pc.biplot) lam <- lam / sqrt(n)
+		dim.lab <- paste("PC", choices, sep="")
+		use.rgl <- options("Rcmdr")[[1]]$use.rgl
+		if(length(use.rgl) == 0 || use.rgl) require(rgl)
+			cntrs <- apply(data.frame(scores[, choices]), MARGIN=2,
+		function(x) tapply(x,as.factor(clsAsgn),mean))
+		x <- t(t(scores[, choices]) / lam)
+		cntrs <- t(t(cntrs) / lam)
+		y <- t(t(pc$rotation[, choices]) * lam)
+		n <- nrow(pc)
+		ncls <- nrow(cntrs)
+		p <- nrow(y)
+		if(missing(xlabs)) {
+			xlabs <- dimnames(x)[[1]]
+			if(is.null(xlabs)) xlabs <- 1:n
+		}
+		xlabs <- as.character(xlabs)
+		dimnames(x) <- list(xlabs, dimnames(x)[[2]])
+		if(missing(ylabs)) {
+			ylabs <- dimnames(y)[[1]]
+			if(is.null(ylabs)) ylabs <- paste("Var", 1:p)
+		}
+		ylabs <- as.character(ylabs)
+		dimnames(y) <- list(ylabs, dimnames(y)[[2]])
 
-    unsigned.range <- function(x) c(-abs(min(x)), abs(max(x)))
-    rangx1 <- unsigned.range(x[, 1])
-    rangx2 <- unsigned.range(x[, 2])
-    rangx3 <- unsigned.range(x[, 3])
-    rangy1 <- unsigned.range(y[, 1])
-    rangy2 <- unsigned.range(y[, 2])
-    rangy3 <- unsigned.range(y[, 3])
-    ratio <- max(rangy1/rangx1, rangy2/rangx2, rangy3/rangx2)
-    rangy1 <- rangy1/ratio
-    rangy2 <- rangy2/ratio
-    rangy3 <- rangy3/ratio
-    rangx <- c(min(rangx1[1], rangy1[1]), max(rangx1[2], rangy1[2]))
-    rangy <- c(min(rangx2[1], rangy2[1]), max(rangx2[2], rangy2[2]))
-    rangz <- c(min(rangx3[1], rangy3[1]), max(rangx3[2], rangy3[2]))
-    if (missing(xlim) && missing(ylim) && missing(zlim))
-        xlim <- ylim <- zlim <- range(rangx, rangy, rangz)
-    else if (missing(xlim) && missing(ylim))
-        xlim <- ylim <- range(rangx, rangy)
-    else if (missing(xlim) && missing(zlim))
-        xlim <- zlim <- range(rangx, rangz)
-    else if (missing(ylim) && missing(zlim))
-        ylim <- zlim <- range(rangy, rangz)
-    else if (missing(xlim))
-        xlim <- rangx
-    else if (missing(ylim))
-        ylim <- rangy
-    else if (missing(zlim))
-        zlim <- rangz
-    cMin <- min(xlim, ylim, zlim)
-    rgl.clear()
-    rgl.viewpoint(fov=fov)
-    rgl.bg(color="white")
-    rgl.lines(c(cMin,rangx[2]), c(cMin,cMin), c(cMin,cMin), color="black")
-    rgl.lines(c(cMin,cMin), c(cMin,rangy[2]), c(cMin,cMin), color="black")
-    rgl.lines(c(cMin,cMin), c(cMin,cMin), c(cMin,rangz[2]), color="black")
-    if(!is.null(dim.lab)) {
-        rgl.texts(rangx[2], cMin, cMin, dim.lab[1], adj = 1, color = "black")
-        rgl.texts(cMin, rangy[2], cMin, dim.lab[2], adj = 1, color = "black")
-        rgl.texts(cMin, cMin, rangz[2], dim.lab[3], adj = 1, color = "black")
-	}
-    if(data.pts) texts3d(x[,1], x[,2], x[,3], texts = xlabs, color= col.score)
-    if(centroids) texts3d(cntrs[,1], cntrs[,2], cntrs[,3], 
-      texts = as.character(1:ncls), color = col.cntrs)
-    if (var.axes) {
-        zrs <- rep(0, nrow(y))
-	    for(i in 1:nrow(y)) {
-            lines3d(c(0,y[i,1]/ratio), c(0,y[i,2]/ratio), c(0,y[i,3]/ratio),
-	          color = "red")
+		unsigned.range <- function(x) c(-abs(min(x)), abs(max(x)))
+		rangx1 <- unsigned.range(x[, 1])
+		rangx2 <- unsigned.range(x[, 2])
+		rangx3 <- unsigned.range(x[, 3])
+		rangy1 <- unsigned.range(y[, 1])
+		rangy2 <- unsigned.range(y[, 2])
+		rangy3 <- unsigned.range(y[, 3])
+		ratio <- max(rangy1/rangx1, rangy2/rangx2, rangy3/rangx2)
+		rangy1 <- rangy1/ratio
+		rangy2 <- rangy2/ratio
+		rangy3 <- rangy3/ratio
+		rangx <- c(min(rangx1[1], rangy1[1]), max(rangx1[2], rangy1[2]))
+		rangy <- c(min(rangx2[1], rangy2[1]), max(rangx2[2], rangy2[2]))
+		rangz <- c(min(rangx3[1], rangy3[1]), max(rangx3[2], rangy3[2]))
+		if (missing(xlim) && missing(ylim) && missing(zlim))
+			xlim <- ylim <- zlim <- range(rangx, rangy, rangz)
+		else if (missing(xlim) && missing(ylim))
+			xlim <- ylim <- range(rangx, rangy)
+		else if (missing(xlim) && missing(zlim))
+			xlim <- zlim <- range(rangx, rangz)
+		else if (missing(ylim) && missing(zlim))
+			ylim <- zlim <- range(rangy, rangz)
+		else if (missing(xlim))
+			xlim <- rangx
+		else if (missing(ylim))
+			ylim <- rangy
+		else if (missing(zlim))
+			zlim <- rangz
+		cMin <- min(xlim, ylim, zlim)
+		rgl::rgl.clear()
+		rgl::rgl.viewpoint(fov=fov)
+		rgl::rgl.bg(color="white")
+		rgl::rgl.lines(c(cMin,rangx[2]), c(cMin,cMin), c(cMin,cMin), color="black")
+		rgl::rgl.lines(c(cMin,cMin), c(cMin,rangy[2]), c(cMin,cMin), color="black")
+		rgl::rgl.lines(c(cMin,cMin), c(cMin,cMin), c(cMin,rangz[2]), color="black")
+		if(!is.null(dim.lab)) {
+			rgl::rgl.texts(rangx[2], cMin, cMin, dim.lab[1], adj = 1, color = "black")
+			rgl::rgl.texts(cMin, rangy[2], cMin, dim.lab[2], adj = 1, color = "black")
+			rgl::rgl.texts(cMin, cMin, rangz[2], dim.lab[3], adj = 1, color = "black")
+		}
+		if(data.pts) rgl::texts3d(x[,1], x[,2], x[,3], texts = xlabs, color= col.score)
+		if(centroids) rgl::texts3d(cntrs[,1], cntrs[,2], cntrs[,3], 
+		  texts = as.character(1:ncls), color = col.cntrs)
+		if (var.axes) {
+			zrs <- rep(0, nrow(y))
+			for(i in 1:nrow(y)) {
+				rgl::lines3d(c(0,y[i,1]/ratio), c(0,y[i,2]/ratio), c(0,y[i,3]/ratio),
+				color = "red")
 	        }
 	    }
-    texts3d(1.05*y[,1]/ratio, 1.05*y[,2]/ratio, 1.05*y[,3]/ratio, texts = ylabs,
-      color = "red")
-    return(invisible())
+		rgl::texts3d(1.05*y[,1]/ratio, 1.05*y[,2]/ratio, 1.05*y[,3]/ratio, texts = ylabs,
+		color = "red")
+		return(invisible())
+	} else {
+		stop("The needed rgl package is not available.")
+	}
 }
 
 # The SD Index plot functions for k-means
 SD.clv <- function(x, clus, alpha) {
-    require(clv)
     if(!is.data.frame(x)) x <- as.data.frame(x)
     scatt <- clv.Scatt(x, clus)
     dis <- clv.Dis(scatt$cluster.center)
@@ -262,8 +265,6 @@ SD.clv <- function(x, clus, alpha) {
     }
 
 SDIndex <- function(x, minClust, maxClust, iter.max=10, num.seeds=10) {
-    require(clv)
-    require(Rcmdr)
     if(minClust < 2) stop("The minimum number of clusters must be two or more")
     cluster.vec <- as.integer(seq(minClust, maxClust, by=1))
     maxClus <- KMeans(x, centers=maxClust, iter.max=iter.max,
@@ -358,7 +359,6 @@ bootPlot <- function(fc, ch, col1="blue", col2="green") {
 bootCVD <- function(x, k, nboot=100, nrep=1, method = c("kmn", "kmd", "neuralgas"),
   col1, col2, dsname) {
   print(class(x))
-  require(flexclust)
   method = match.arg(method)
   if(method == "kmn") {
     bfc <- bootFlexclust(x=x, k=k, nboot=nboot, nrep=nrep, FUN = cclust,
@@ -388,88 +388,6 @@ bootCVD <- function(x, k, nboot=100, nrep=1, method = c("kmn", "kmd", "neuralgas
     xlab="Number of Clusters", ylab="Calinski-Harabas", col=col2)
   par(mfrow = omfrow)
 }
-
-## Models
-# The neural network functions
-nnSub <- function(data, subset) {
-    rowInd <- 1:nrow(data)
-    if(length(unlist(strsplit(subset, "=="))) == 2) {
-        compType <- "Equal"
-        subSplit <- unlist(strsplit(subset, "=="))
-        subVar <- trim.blanks(subSplit[1])
-        subVal <- eval(parse(text=trim.blanks(subSplit[2])))
-        }
-    else if(length(unlist(strsplit(subset, "!="))) == 2) {
-        compType <- "NotEqual"
-        subSplit <- unlist(strsplit(subset, "!="))
-        subVar <- trim.blanks(subSplit[1])
-        subVal <- eval(parse(text=trim.blanks(subSplit[2])))
-        }
-    else if(length(unlist(strsplit(subset, ">="))) == 2) {
-        compType <- "GrtrEqual"
-        subSplit <- unlist(strsplit(subset, ">="))
-        subVar <- trim.blanks(subSplit[1])
-        subVal <- eval(parse(text=trim.blanks(subSplit[2])))
-        }
-    else if(length(unlist(strsplit(subset, "<="))) == 2) {
-        compType <- "LessEqual"
-        subSplit <- unlist(strsplit(subset, "<="))
-        subVar <- trim.blanks(subSplit[1])
-        subVal <- eval(parse(text=trim.blanks(subSplit[2])))
-        }
-    else if(length(unlist(strsplit(subset, ">"))) == 2) {
-        compType <- "Grtr"
-        subSplit <- unlist(strsplit(subset, ">"))
-        subVar <- trim.blanks(subSplit[1])
-        subVal <- eval(parse(text=trim.blanks(subSplit[2])))
-        }
-    else if(length(unlist(strsplit(subset, "<"))) == 2) {
-        compType <- "Less"
-        subSplit <- unlist(strsplit(subset, "<"))
-        subVar <- trim.blanks(subSplit[1])
-        subVal <- eval(parse(text=trim.blanks(subSplit[2])))
-        }
-    else stop("No appropriate comparison operator was found.")
-    subSet <- data[[subVar]]
-    if(compType=="Equal") rowInd <- rowInd[subSet==subVal]
-    else if(compType=="NotEqual") rowInd <- rowInd[subSet!=subVal]
-    else if(compType=="GrtrEqual") rowInd <- rowInd[subSet>=subVal]
-    else if(compType=="LessEqual") rowInd <- rowInd[subSet<=subVal]
-    else if(compType=="Grtr") rowInd <- rowInd[subSet>subVal]
-    else rowInd <- rowInd[subSet<subVal]
-    rowInd <- rowInd[!is.na(rowInd)]
-    return(rowInd)
-    }
-
-Nnet <- function (formula, data, decay, size, subset="") {
-    require(nnet)
-    set.seed(1)
-    if(subset=="") {
-        nnetObj <- nnet(formula=formula, data=data, decay=decay, size=size,
-          maxit=400)
-        for(i in 2:10) {
-            set.seed(i)
-            newNnet <- nnet(formula=formula, data=data, decay=decay, size=size,
-              maxit=400)
-            if(newNnet$value < nnetObj$value) nnetObj <- newNnet
-            }
-        }
-    else {
-        selectRow <- nnSub(data, subset)
-        nData <- data[selectRow,]
-        nnetObj <- nnet(formula=formula, data=nData, decay=decay, size=size,
-          maxit=400)
-        for(i in 2:10) {
-            set.seed(i)
-            newNnet <- nnet(formula=formula, data=nData, decay=decay, size=size,
-              maxit=400)
-            if(newNnet$value < nnetObj$value) nnetObj <- newNnet
-            }
-        }
-    nnetObj$call <- call("Nnet", formula=formula, data=substitute(data), decay=decay,
-      size=size, subset=subset)
-    return(nnetObj)
-    }
 
 ## Lift charts and scoring
 lift.chart <- function(modelList, data, targLevel, trueResp, type="cumulative",
@@ -794,8 +712,7 @@ scatterplotBCA.default <- function(x, y, smooth=TRUE, spread=!by.groups, span=.5
 		col=if (n.groups == 1) palette()[c(2,1,3)] else rep(palette(), length=n.groups),
 		pch=1:n.groups, 
 		legend.plot=!missing(groups), reset.par=TRUE, grid=TRUE, ...){
-    require(car)
-	logged <- function(axis=c("x", "y")){
+		logged <- function(axis=c("x", "y")){
 		axis <- match.arg(axis)
 		0 != length(grep(axis, log))
 	}

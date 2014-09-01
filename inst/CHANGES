@@ -1,4 +1,8 @@
-Version 0.1-0
+Version 0.9-3
+
+ o Made compliant with Rcmdr version 2 and the use of the RcmdrMisc package
+
+ Version 0.1-0
 
  o Initial version, based on dividing RcmdrPlugin.BCA to allow for a NAMESPACE
  
